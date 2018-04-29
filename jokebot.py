@@ -1,5 +1,6 @@
 import time
 import logging
+from multiprocessing import Pool
 from logging.config import dictConfig
 
 import requests
@@ -68,8 +69,9 @@ def get_new_joke():
     return requests.get(_API_URL, headers=_API_HEADERS).json()['joke']
 
 
-if __name__ == '__main__':
-    logger.info('Starting trollbot version 3.0!')
+def start_trollbot(facebook_user_conv_url):
+    logger.info('Starting trollbot version 3.0 for {}!'.format(
+        facebook_user_conv_url.split('/')[-1]))
 
     logger.info('Setting up driver...')
     driver = get_configured_driver()
@@ -82,34 +84,16 @@ if __name__ == '__main__':
     logger.info('Starting the trolling...')
     while True:
         time.sleep(1)
+
         joke = get_new_joke()
+        logger.info('About to tell this joke\t{}'.format(joke))
 
-        logger.info(
-            'About to tell everybody this joke\n\t{}'.format(joke))
-
-        for url in _MESSANGER_URLS:
-            logger.info(
-                'Going to messanger url {} to tell the joke...'.format(url))
-
-            # This is a sanity check in case to cut requests
-            # when there's only one url
-            if driver.current_url != url:
-                driver.get(url)
-            logger.info(
-                'Get request was succesfull,'
-                'now driver should be on page {}!'.format(url)
-            )
-
-            # Safety check for messanger page fully loading
-            time.sleep(1)
-
-            logger.info('Send the joke...')
-            send_text_in_messanger(driver, joke)
-
-            # This is required so that we don't get the
-            # 'are you sure you want to leave' pop-up
-            time.sleep(3)
-
-            logger.info('Joke was succesfully sent!')
+        send_text_in_messanger(driver, joke)
+        logger.info('Joke was succesfully sent!')
 
     driver.close()
+
+
+if __name__ == '__main__':
+    pool = Pool(len(_MESSANGER_URLS))
+    pool.map(start_trollbot, _MESSANGER_URLS)
