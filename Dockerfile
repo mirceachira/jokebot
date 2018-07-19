@@ -1,3 +1,5 @@
 FROM python:3
 
-RUN sleep 60m
+COPY  . /jokebot
+
+RUN pip install -r jokebot/requirements.txt

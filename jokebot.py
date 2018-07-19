@@ -8,14 +8,10 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
-from settings import (
-    HEADLESS, CHROMEDRIVER_PATH, _FACEBOOK_URL,
-    ACCOUNT_ID, ACCOUNT_PASSWORD, _API_HEADERS,
-    _API_URL, _MESSANGER_URLS, LOGGING_CONFIG
-)
+import settings
 
 
-dictConfig(LOGGING_CONFIG)
+dictConfig(settings.LOGGING_CONFIG)
 logger = logging.getLogger('bot')
 
 
@@ -30,25 +26,26 @@ def get_configured_driver():
     # Notifications and pop-ups are disabled by default
     options.add_argument('--disable-notifications')
 
-    if HEADLESS:
+    if settings.HEADLESS:
         options.add_argument('--headless')
 
-    driver = webdriver.Chrome(CHROMEDRIVER_PATH, chrome_options=options)
+    driver = webdriver.Remote(
+        settings.CHROMEDRIVER_REMOTE, options.to_capabilities())
 
     return driver
 
 
 def setup_facebook_login_in_session(driver):
     """Login to facebook to get session cookies."""
-    driver.get(_FACEBOOK_URL)
+    driver.get(settings._FACEBOOK_URL)
 
     email_input = driver.find_element_by_xpath(
         '//input[@data-testid="royal_email"]')
-    email_input.send_keys(ACCOUNT_ID)
+    email_input.send_keys(settings.ACCOUNT_ID)
 
     password_input = driver.find_element_by_xpath(
         '//input[@data-testid="royal_pass"]')
-    password_input.send_keys(ACCOUNT_PASSWORD)
+    password_input.send_keys(settings.ACCOUNT_PASSWORD)
 
     login_button = driver.find_element_by_xpath(
         '//input[@data-testid="royal_login_button"]')
@@ -66,7 +63,8 @@ def get_new_joke():
     The api used here is offered for free by icanhazdadjoke.
     For more info about the api go to https://icanhazdadjoke.com/api
     """
-    return requests.get(_API_URL, headers=_API_HEADERS).json()['joke']
+    return requests.get(
+        settings._API_URL, headers=settings._API_HEADERS).json()['joke']
 
 
 def start_trollbot(facebook_user_conv_url):
@@ -81,7 +79,8 @@ def start_trollbot(facebook_user_conv_url):
     setup_facebook_login_in_session(driver)
     logger.info('Login succesful!')
 
-    logger.info('Starting the trolling...')
+    driver.get(facebook_user_conv_url)
+
     while True:
         time.sleep(1)
 
@@ -95,5 +94,5 @@ def start_trollbot(facebook_user_conv_url):
 
 
 if __name__ == '__main__':
-    pool = Pool(len(_MESSANGER_URLS))
-    pool.map(start_trollbot, _MESSANGER_URLS)
+    pool = Pool(len(settings._MESSANGER_URLS))
+    pool.map(start_trollbot, settings._MESSANGER_URLS)
